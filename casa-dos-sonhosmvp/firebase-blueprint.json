@@ -1,0 +1,142 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information and basic project preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "constructionName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Construction": {
+      "title": "Construction Project",
+      "description": "Main project document containing financial and technical definitions",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["planning", "in-progress", "halted", "completed"] },
+        "financial": {
+          "type": "object",
+          "properties": {
+            "availableNow": { "type": "number" },
+            "availableMonthly": { "type": "number" },
+            "hasEmergencyFund": { "type": "boolean" },
+            "willFinance": { "type": "boolean" },
+            "maxBudget": { "type": "number" },
+            "land": {
+              "type": "object",
+              "properties": {
+                "hasLand": { "type": "boolean" },
+                "estimatedCost": { "type": "number" },
+                "docsCost": { "type": "number" },
+                "taxesCost": { "type": "number" },
+                "feesCost": { "type": "number" }
+              }
+            }
+          }
+        },
+        "landInfo": {
+          "type": "object",
+          "properties": {
+            "location": { "type": "string" },
+            "sizeSqm": { "type": "number" },
+            "topography": { "type": "string" },
+            "infra": {
+              "type": "object",
+              "properties": {
+                "waterCost": { "type": "number" },
+                "powerCost": { "type": "number" },
+                "sanitationCost": { "type": "number" },
+                "accessCost": { "type": "number" }
+              }
+            }
+          }
+        },
+        "definition": {
+          "type": "object",
+          "properties": {
+            "sqm": { "type": "number" },
+            "rooms": { "type": "number" },
+            "bathrooms": { "type": "number" },
+            "additions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "name": { "type": "string" },
+                  "cost": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "spent": { "type": "number" },
+        "overallProgress": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "BudgetSheet": {
+      "title": "Budget Sheet",
+      "description": "Individual quote for a specific item",
+      "type": "object",
+      "properties": {
+        "itemName": { "type": "string" },
+        "supplier": { "type": "string" },
+        "value": { "type": "number" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ProgressLog": {
+      "title": "Progress Log",
+      "description": "Historical record of construction progress",
+      "type": "object",
+      "properties": {
+        "stage": { "type": "string" },
+        "percentage": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "team": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "Reference": {
+      "title": "Reference Material",
+      "description": "Links and images for inspiration or documentation",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["link", "image"] },
+        "url": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "MarketItem": {
+      "title": "Market Item",
+      "description": "Global price and supplier history for reusable materials and services",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "lastSupplier": { "type": "string" },
+        "lastPrice": { "type": "number" },
+        "lastQuantity": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profile" },
+    "/constructions/{id}": { "schema": "Construction", "description": "Main construction projects" },
+    "/constructions/{id}/budgetSheets": { "schema": "BudgetSheet", "description": "Quotes per item" },
+    "/constructions/{id}/progressLogs": { "schema": "ProgressLog", "description": "Construction history" },
+    "/constructions/{id}/references": { "schema": "Reference", "description": "Project inspiration and files" },
+    "/market_items/{itemId}": { "schema": "MarketItem", "description": "Global material and supplier price history" }
+  }
+}

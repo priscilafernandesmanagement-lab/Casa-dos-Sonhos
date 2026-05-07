@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // --- Entity Validations ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'createdAt']) &&
+             data.keys().size() >= 4 &&
+             data.id == request.auth.uid &&
+             data.name is string && data.name.size() > 0 &&
+             data.email == request.auth.token.email;
+    }
+
+    function isValidConstruction(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'status', 'createdAt']) &&
+             data.ownerId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 &&
+             data.status in ['planning', 'in-progress', 'halted', 'completed'];
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isSignedIn() && isValidUser(incoming());
+      allow update: if isOwner(userId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'constructionName']) &&
+                       incoming().id == existing().id &&
+                       incoming().email == existing().email;
+    }
+
+    match /constructions/{constructionId} {
+      function canAccessProject() {
+        return isSignedIn() && isOwner(resource.data.ownerId);
+      }
+      function getProject() {
+        return get(/databases/$(database)/documents/constructions/$(constructionId)).data;
+      }
+
+      allow get: if canAccessProject();
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      
+      allow create: if isSignedIn() && isValidConstruction(incoming()) && isValidId(constructionId);
+      allow update: if isSignedIn() && isOwner(existing().ownerId) && 
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isOwner(existing().ownerId);
+
+      // Sub-collections
+      match /budgetSheets/{sheetId} {
+        allow read, write: if isSignedIn() && isOwner(getProject().ownerId);
+      }
+      match /progressLogs/{logId} {
+        allow read, write: if isSignedIn() && isOwner(getProject().ownerId);
+      }
+      match /references/{refId} {
+        allow read, write: if isSignedIn() && isOwner(getProject().ownerId);
+      }
+      // Re-adding details for backward compatibility if needed, but the new system uses budgetSheets and progressLogs
+      match /details/{detailId} {
+        allow read, write: if isSignedIn() && isOwner(getProject().ownerId);
+      }
+    }
+
+    match /market_items/{itemId} {
+      function isValidMarketItem(data) {
+        return data.keys().hasAll(['name', 'lastSupplier', 'lastPrice']) &&
+               data.name is string && data.name.size() > 0 &&
+               data.lastSupplier is string &&
+               data.lastPrice is number;
+      }
+
+      allow list, get: if isSignedIn();
+      allow create: if isSignedIn() && isValidMarketItem(incoming()) && isValidId(itemId);
+      allow update: if isSignedIn() && isValidMarketItem(incoming());
+    }
+  }
+}
