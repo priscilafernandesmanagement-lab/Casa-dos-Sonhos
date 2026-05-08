@@ -16,6 +16,30 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Validações de segurança
+    if (!email.trim()) {
+      setError('E-mail é obrigatório.');
+      setLoading(false);
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('E-mail inválido.');
+      setLoading(false);
+      return;
+    }
+    if (!password.trim()) {
+      setError('Senha é obrigatória.');
+      setLoading(false);
+      return;
+    }
+    if (password.length > 128) {
+      setError('Senha muito longa.');
+      setLoading(false);
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {

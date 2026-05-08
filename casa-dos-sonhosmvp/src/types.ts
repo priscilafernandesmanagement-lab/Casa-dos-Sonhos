@@ -44,6 +44,8 @@ export interface Project {
   ownerId: string;
   title: string;
   status: ProjectStatus;
+  budget: number;
+  address: string;
   financial?: FinancialData;
   landInfo?: LandInfo;
   definition?: HouseDefinition;

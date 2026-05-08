@@ -85,5 +85,16 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidMarketItem(incoming()) && isValidId(itemId);
       allow update: if isSignedIn() && isValidMarketItem(incoming());
     }
+
+    // Global collections for preserved data
+    match /globalBudgetSheets/{sheetId} {
+      allow read, write: if isSignedIn() && isOwner(resource.data.ownerId);
+    }
+    match /globalProgressLogs/{logId} {
+      allow read, write: if isSignedIn() && isOwner(resource.data.ownerId);
+    }
+    match /globalReferences/{refId} {
+      allow read, write: if isSignedIn() && isOwner(resource.data.ownerId);
+    }
   }
 }

@@ -20,6 +20,45 @@ export default function Signup() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Validações de segurança
+    if (!name.trim()) {
+      setError('Nome é obrigatório.');
+      setLoading(false);
+      return;
+    }
+    if (name.length > 100) {
+      setError('Nome muito longo.');
+      setLoading(false);
+      return;
+    }
+    if (!email.trim()) {
+      setError('E-mail é obrigatório.');
+      setLoading(false);
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('E-mail inválido.');
+      setLoading(false);
+      return;
+    }
+    if (password.length < 6) {
+      setError('Senha deve ter pelo menos 6 caracteres.');
+      setLoading(false);
+      return;
+    }
+    if (password.length > 128) {
+      setError('Senha muito longa.');
+      setLoading(false);
+      return;
+    }
+    if (constructionName && constructionName.length > 200) {
+      setError('Nome da construção muito longo.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;

@@ -121,7 +121,14 @@ export default function FinancialPhase({ project }: Props) {
               </div>
               <input 
                 type="number" value={data.maxBudget} 
-                onChange={e => setData({ ...data, maxBudget: Number(e.target.value) })}
+                onChange={e => {
+                  const value = Number(e.target.value);
+                  if (value < 0 || value > 10000000) { // Limite de 10 milhões
+                    alert('Valor inválido.');
+                    return;
+                  }
+                  setData({ ...data, maxBudget: value });
+                }}
                 className="w-full bg-white p-4 rounded-2xl font-serif text-3xl font-bold text-[#3D5A3E] outline-none shadow-sm"
               />
               <p className="text-[10px] text-[#8B7355] mt-3 italic">* Este é o valor total que você planeja gastar com a construção (excluindo terreno).</p>

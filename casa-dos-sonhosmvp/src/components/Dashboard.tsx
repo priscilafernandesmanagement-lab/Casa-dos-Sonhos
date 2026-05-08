@@ -61,18 +61,35 @@ export default function Dashboard() {
 
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim() || !auth.currentUser) return;
+    if (!auth.currentUser) return;
+
+    // Validações de segurança
+    const trimmedTitle = newTitle.trim();
+    if (!trimmedTitle) {
+      alert('Título é obrigatório.');
+      return;
+    }
+    if (trimmedTitle.length > 200) {
+      alert('Título muito longo.');
+      return;
+    }
+    // Verificar caracteres permitidos (apenas letras, números, espaços, etc.)
+    const titleRegex = /^[a-zA-Z0-9\s\-_.,!?]+$/;
+    if (!titleRegex.test(trimmedTitle)) {
+      alert('Título contém caracteres inválidos.');
+      return;
+    }
 
     try {
       if (editingProject) {
         await updateDoc(doc(db, 'constructions', editingProject.id), {
-          title: newTitle,
+          title: trimmedTitle,
           updatedAt: serverTimestamp(),
         });
       } else {
         await addDoc(collection(db, 'constructions'), {
           ownerId: auth.currentUser.uid,
-          title: newTitle,
+          title: trimmedTitle,
           status: 'planning',
           budget: 0,
           spent: 0,
@@ -102,15 +119,24 @@ export default function Dashboard() {
     if (!window.confirm('Tem certeza que deseja excluir esta obra? Todos os dados vinculados (fases, progressos, custos locais) serão apagados, mas o histórico global de fornecedores e materiais será mantido.')) return;
 
     try {
-      // Subcollections to clean up
+      // Move subcollections to global collections to preserve data
       const subcollections = ['budgetSheets', 'progressLogs', 'references'];
-      
-      // Note: This is a shallow cleanup for a prototype. 
-      // Ideally this happens in a Cloud Function to ensure atomicity and handle depth.
-      for (const sub of subcollections) {
+      const globalCollections = ['globalBudgetSheets', 'globalProgressLogs', 'globalReferences'];
+
+      for (let i = 0; i < subcollections.length; i++) {
+        const sub = subcollections[i];
+        const globalCol = globalCollections[i];
         const q = query(collection(db, 'constructions', projectId, sub));
         const snap = await getDocs(q);
-        await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+        await Promise.all(snap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          await addDoc(collection(db, globalCol), {
+            ...data,
+            originalProjectId: projectId,
+            ownerId: auth.currentUser!.uid,
+            archivedAt: serverTimestamp(),
+          });
+        }));
       }
 
       await deleteDoc(doc(db, 'constructions', projectId));
@@ -168,18 +194,26 @@ export default function Dashboard() {
           </h1>
         </div>
         
-        <div className="flex bg-white/50 p-1 rounded-2xl border border-[#8B7355]/10 self-stretch md:self-auto shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex bg-white/50 p-1 rounded-2xl border border-[#8B7355]/10 self-stretch md:self-auto shadow-sm">
+            <button 
+              onClick={() => setActiveTab('roadmap')}
+              className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'roadmap' ? 'bg-[#3D5A3E] text-white shadow-md scale-105' : 'text-[#8B7355] hover:bg-white'}`}
+            >
+              Roteiro
+            </button>
+            <button 
+              onClick={() => setActiveTab('works')}
+              className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'works' ? 'bg-[#3D5A3E] text-white shadow-md scale-105' : 'text-[#8B7355] hover:bg-white'}`}
+            >
+              Minhas Obras
+            </button>
+          </div>
           <button 
-            onClick={() => setActiveTab('roadmap')}
-            className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'roadmap' ? 'bg-[#3D5A3E] text-white shadow-md scale-105' : 'text-[#8B7355] hover:bg-white'}`}
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#3D5A3E] text-white px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#2C4A2E] transition-all shadow-md"
           >
-            Roteiro
-          </button>
-          <button 
-            onClick={() => setActiveTab('works')}
-            className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'works' ? 'bg-[#3D5A3E] text-white shadow-md scale-105' : 'text-[#8B7355] hover:bg-white'}`}
-          >
-            Minhas Obras
+            + Nova Obra
           </button>
         </div>
       </header>
@@ -250,6 +284,12 @@ export default function Dashboard() {
                                  className="p-1.5 text-blue-300 hover:text-blue-600 transition-colors"
                                >
                                  <Sparkles size={14} />
+                               </button>
+                               <button 
+                                 onClick={(e) => handleDeleteProject(p.id, e)}
+                                 className="p-1.5 text-red-300 hover:text-red-600 transition-colors"
+                               >
+                                 <Trash2 size={14} />
                                </button>
                             </div>
                           </div>
@@ -377,6 +417,12 @@ export default function Dashboard() {
                          className="p-2 bg-blue-50 text-blue-300 hover:text-blue-600 rounded-xl transition-all"
                        >
                          <Sparkles size={16} />
+                       </button>
+                       <button
+                         onClick={(e) => handleDeleteProject(project.id, e)}
+                         className="p-2 bg-red-50 text-red-300 hover:text-red-600 rounded-xl transition-all"
+                       >
+                         <Trash2 size={16} />
                        </button>
                     </div>
                   </div>

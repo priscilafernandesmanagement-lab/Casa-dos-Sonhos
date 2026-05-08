@@ -27,7 +27,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-height-screen bg-[#FAF7F0]">
+      <div className="flex items-center justify-center min-h-screen bg-[#FAF7F0]">
         <div className="animate-pulse flex flex-col items-center">
           <div className="w-12 h-12 border-4 border-[#3D5A3E] border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-[#8B7355] font-serif italic text-lg">Carregando seus sonhos...</p>
@@ -38,7 +38,7 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-height-screen bg-[#FAF7F0] text-[#2C2820]">
+      <div className="min-h-screen bg-[#FAF7F0] text-[#2C2820]">
         {user && <Navbar user={user} />}
         <main className="max-w-7xl mx-auto px-4 py-8">
           <Routes>
